@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,11 +26,31 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.IdRes;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.transition.AutoTransition;
+import androidx.transition.Transition;
+import androidx.transition.TransitionManager;
+
 import com.yalantis.ucrop.callback.BitmapCropCallback;
 import com.yalantis.ucrop.model.AspectRatio;
+import com.yalantis.ucrop.model.ImageTask;
 import com.yalantis.ucrop.util.SelectedStateListDrawable;
 import com.yalantis.ucrop.view.CropImageView;
 import com.yalantis.ucrop.view.GestureCropImageView;
+import com.yalantis.ucrop.view.ImageList.ImageAdapter;
+import com.yalantis.ucrop.view.ImageList.ImageTaskListOwner;
+import com.yalantis.ucrop.view.ImageList.ImageTaskListener;
 import com.yalantis.ucrop.view.OverlayView;
 import com.yalantis.ucrop.view.TransformImageView;
 import com.yalantis.ucrop.view.UCropView;
@@ -42,26 +63,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import androidx.annotation.ColorInt;
-import androidx.annotation.DrawableRes;
-import androidx.annotation.IdRes;
-import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
-import androidx.transition.AutoTransition;
-import androidx.transition.Transition;
-import androidx.transition.TransitionManager;
-
 /**
  * Created by Oleksii Shliama (https://github.com/shliama).
  */
 
 @SuppressWarnings("ConstantConditions")
-public class UCropActivity extends AppCompatActivity {
+public class UCropActivity extends AppCompatActivity implements ImageTaskListOwner, BitmapCropCallback {
 
     public static final int DEFAULT_COMPRESS_QUALITY = 90;
     public static final Bitmap.CompressFormat DEFAULT_COMPRESS_FORMAT = Bitmap.CompressFormat.JPEG;
@@ -109,6 +116,8 @@ public class UCropActivity extends AppCompatActivity {
     private List<ViewGroup> mCropAspectRatioViews = new ArrayList<>();
     private TextView mTextViewRotateAngle, mTextViewScalePercent;
     private View mBlockingView;
+    private ImageTaskListener mTaskListener;
+    private ArrayList<Uri> mResultArray = new ArrayList<Uri>();
 
     private Transition mControlsTransition;
 
@@ -126,11 +135,23 @@ public class UCropActivity extends AppCompatActivity {
         setContentView(R.layout.ucrop_activity_photobox);
 
         final Intent intent = getIntent();
-
         setupViews(intent);
-        setImageData(intent);
         setInitialState();
         addBlockingView();
+
+        if (intent.hasExtra(UCrop.EXTRA_LIST_INPUT_URI))
+            setupImageList(intent);
+        else
+            setImageData(intent);
+    }
+
+    @Override
+    public void onSelectionChange(ImageTask currentTask) {
+        Intent bundle = new Intent();
+        bundle.putExtra(UCrop.EXTRA_INPUT_URI, currentTask.getSource());
+        bundle.putExtra(UCrop.EXTRA_OUTPUT_URI, currentTask.getDestination());
+//        bundle.putExtras(getIntent());
+        setImageData(bundle);
     }
 
     @Override
@@ -665,20 +686,38 @@ public class UCropActivity extends AppCompatActivity {
         mShowLoader = true;
         supportInvalidateOptionsMenu();
 
-        mGestureCropImageView.cropAndSaveImage(mCompressFormat, mCompressQuality, new BitmapCropCallback() {
+        mGestureCropImageView.cropAndSaveImage(mCompressFormat, mCompressQuality, this);
+    }
 
-            @Override
-            public void onBitmapCropped(@NonNull Uri resultUri, int offsetX, int offsetY, int imageWidth, int imageHeight) {
-                setResultUri(resultUri, mGestureCropImageView.getTargetAspectRatio(), offsetX, offsetY, imageWidth, imageHeight);
-                finish();
-            }
+    @Override
+    public void onBitmapCropped(@NonNull Uri resultUri, int offsetX, int offsetY, int imageWidth, int imageHeight) {
+        if (getIntent().hasExtra(UCrop.EXTRA_LIST_INPUT_URI))
+            mResultArray.add(resultUri);
+        else
+            setResultUri(resultUri, mGestureCropImageView.getTargetAspectRatio(), offsetX, offsetY, imageWidth, imageHeight);
+        mBlockingView.setClickable(false);
+        mShowLoader = false;
+        supportInvalidateOptionsMenu();
+        if (mTaskListener == null)
+            finish();
+        else if (mTaskListener.onImageTaskFinish()) {
+            setResultUriArray(mResultArray);
+            finish();
+        }
+    }
 
-            @Override
-            public void onCropFailure(@NonNull Throwable t) {
-                setResultError(t);
-                finish();
-            }
-        });
+    @Override
+    public void onCropFailure(@NonNull Throwable t) {
+        setResultError(t);
+        mBlockingView.setClickable(false);
+        mShowLoader = false;
+        supportInvalidateOptionsMenu();
+        if (mTaskListener == null)
+            finish();
+        else if (mTaskListener.onImageTaskFinish()) {
+            setResultUriArray(mResultArray);
+            finish();
+        }
     }
 
     protected void setResultUri(Uri uri, float resultAspectRatio, int offsetX, int offsetY, int imageWidth, int imageHeight) {
@@ -692,8 +731,33 @@ public class UCropActivity extends AppCompatActivity {
         );
     }
 
+    protected void setResultUriArray(ArrayList<Uri> uris) {
+        setResult(RESULT_OK, new Intent()
+                .putParcelableArrayListExtra(UCrop.EXTRA_LIST_OUTPUT_URI, uris)
+        );
+    }
+
     protected void setResultError(Throwable throwable) {
         setResult(UCrop.RESULT_ERROR, new Intent().putExtra(UCrop.EXTRA_ERROR, throwable));
     }
 
+    private void setupImageList(Intent intent) {
+        ViewGroup wrapper = findViewById(R.id.controls_wrapper);
+        RecyclerView imgList = wrapper.findViewById(R.id.list_img);
+
+        imgList.setVisibility(View.VISIBLE);
+        ArrayList<Uri> inputUris = (ArrayList<Uri>) intent.getSerializableExtra(UCrop.EXTRA_LIST_INPUT_URI);
+        ArrayList<Uri> outputUris = (ArrayList<Uri>) intent.getSerializableExtra(UCrop.EXTRA_LIST_OUTPUT_URI);
+        ArrayList<ImageTask> imageTasks = new ArrayList<ImageTask>();
+        for (int i = 0; i < inputUris.size(); i++) {
+            imageTasks.add(new ImageTask(inputUris.get(i), outputUris.get(i)));
+        }
+        ImageAdapter adapter = new ImageAdapter(imageTasks, this);
+        mTaskListener = adapter;
+        imgList.setAdapter(adapter);
+        imgList.setLayoutManager(new LinearLayoutManager(imgList.getContext(), LinearLayoutManager.HORIZONTAL, false));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            imgList.setForegroundGravity(Gravity.CENTER_HORIZONTAL);
+        }
+    }
 }

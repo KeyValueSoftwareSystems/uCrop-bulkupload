@@ -11,18 +11,20 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 
-import com.yalantis.ucrop.model.AspectRatio;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Locale;
-
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.FloatRange;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.yalantis.ucrop.model.AspectRatio;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.UUID;
 
 /**
  * Created by Oleksii Shliama (https://github.com/shliama).
@@ -38,6 +40,8 @@ public class UCrop {
     private static final String EXTRA_PREFIX = BuildConfig.APPLICATION_ID;
 
     public static final String EXTRA_INPUT_URI = EXTRA_PREFIX + ".InputUri";
+    public static final String EXTRA_LIST_INPUT_URI = EXTRA_PREFIX + ".ListInputUri";
+    public static final String EXTRA_LIST_OUTPUT_URI = EXTRA_PREFIX + ".ListOutputUri";
     public static final String EXTRA_OUTPUT_URI = EXTRA_PREFIX + ".OutputUri";
     public static final String EXTRA_OUTPUT_CROP_ASPECT_RATIO = EXTRA_PREFIX + ".CropAspectRatio";
     public static final String EXTRA_OUTPUT_IMAGE_WIDTH = EXTRA_PREFIX + ".ImageWidth";
@@ -63,6 +67,21 @@ public class UCrop {
      */
     public static UCrop of(@NonNull Uri source, @NonNull Uri destination) {
         return new UCrop(source, destination);
+    }
+
+    public static UCrop of(@NonNull ArrayList<Uri> sourceList, @NonNull File parent) {
+        ArrayList<Uri> destination = new ArrayList<Uri>();
+        for (Uri uri : sourceList) {
+            destination.add(Uri.fromFile(new File(parent, UUID.randomUUID() + ".jpg")));
+        }
+        return new UCrop(sourceList, destination);
+    }
+
+    private UCrop(@NonNull ArrayList<Uri> sourceList, @NonNull ArrayList<Uri> destinationList) {
+        mCropIntent = new Intent();
+        mCropOptionsBundle = new Bundle();
+        mCropOptionsBundle.putParcelableArrayList(EXTRA_LIST_INPUT_URI, sourceList);
+        mCropOptionsBundle.putParcelableArrayList(EXTRA_LIST_OUTPUT_URI, destinationList);
     }
 
     private UCrop(@NonNull Uri source, @NonNull Uri destination) {
@@ -211,6 +230,10 @@ public class UCrop {
     @Nullable
     public static Uri getOutput(@NonNull Intent intent) {
         return intent.getParcelableExtra(EXTRA_OUTPUT_URI);
+    }
+
+    public static ArrayList<Uri> getOutputArray(@NonNull Intent intent) {
+        return (ArrayList<Uri>) intent.getSerializableExtra(EXTRA_LIST_OUTPUT_URI);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.yalantis.ucrop.sample;
 
 import android.annotation.TargetApi;
+import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
@@ -25,21 +26,23 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+
 import com.yalantis.ucrop.UCrop;
 import com.yalantis.ucrop.UCropActivity;
 import com.yalantis.ucrop.UCropFragment;
 import com.yalantis.ucrop.UCropFragmentCallback;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
-
-import androidx.annotation.ColorInt;
-import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 
 /**
  * Created by Oleksii Shliama (https://github.com/shliama).
@@ -84,6 +87,7 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         setupUI();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
@@ -92,7 +96,13 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
                 if (selectedUri != null) {
                     startCrop(selectedUri);
                 } else {
-                    Toast.makeText(SampleActivity.this, R.string.toast_cannot_retrieve_selected_image, Toast.LENGTH_SHORT).show();
+                    ClipData clipData = data.getClipData();
+                    ArrayList<Uri> srcList = new ArrayList<Uri>();
+                    for (int i = 0; i < clipData.getItemCount(); i++) {
+                        Log.i("result URI", clipData.getItemAt(i).getUri().toString());
+                        srcList.add(clipData.getItemAt(i).getUri());
+                    }
+                    startCrop(srcList);
                 }
             } else if (requestCode == UCrop.REQUEST_CROP) {
                 handleCropResult(data);
@@ -145,6 +155,12 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
             @Override
             public void onClick(View v) {
                 pickFromGallery();
+            }
+        });
+        findViewById(R.id.button_multiple_crop).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickMultipleFromGallery();
             }
         });
         findViewById(R.id.button_random_image).setOnClickListener(new View.OnClickListener() {
@@ -219,6 +235,20 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         startActivityForResult(Intent.createChooser(intent, getString(R.string.label_select_picture)), requestMode);
     }
 
+    private void pickMultipleFromGallery() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT)
+                .setType("image/*")
+                .addCategory(Intent.CATEGORY_OPENABLE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            String[] mimeTypes = {"image/jpeg", "image/png"};
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+
+        startActivityForResult(Intent.createChooser(intent, getString(R.string.label_select_picture)), requestMode);
+    }
+
     private void startCrop(@NonNull Uri uri) {
         String destinationFileName = SAMPLE_CROPPED_IMAGE_NAME;
         switch (mRadioGroupCompressionSettings.getCheckedRadioButtonId()) {
@@ -241,6 +271,13 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
             uCrop.start(SampleActivity.this);
         }
 
+    }
+
+    private void startCrop(ArrayList<Uri> srcList) {
+        UCrop uCrop = UCrop.of(srcList, getCacheDir());
+        uCrop = basisConfig(uCrop);
+        uCrop = advancedConfig(uCrop);
+        uCrop.start(SampleActivity.this);
     }
 
     /**
@@ -364,9 +401,11 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
     private void handleCropResult(@NonNull Intent result) {
         final Uri resultUri = UCrop.getOutput(result);
         if (resultUri != null) {
-            ResultActivity.startWithUri(SampleActivity.this, resultUri);
+            Log.i("result", resultUri.toString());
+//            ResultActivity.startWithUri(SampleActivity.this, resultUri);
         } else {
-            Toast.makeText(SampleActivity.this, R.string.toast_cannot_retrieve_cropped_image, Toast.LENGTH_SHORT).show();
+            final ArrayList<Uri> resultArray = UCrop.getOutputArray(result);
+            Log.i("result URIs", String.valueOf(resultArray.size()));
         }
     }
 
