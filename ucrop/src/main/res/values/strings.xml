@@ -10,5 +10,7 @@
     <string name="ucrop_rotate">Rotate</string>
     <string name="ucrop_scale">Scale</string>
     <string name="ucrop_crop">Crop</string>
+    <string name="ucrop_cancel" translatable="false">Cancel</string>
+    <string name="ucrop_save" translatable="false">Done</string>
 
 </resources>
