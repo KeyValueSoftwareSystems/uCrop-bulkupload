@@ -327,6 +327,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
             mUCropView.animate().alpha(1).setDuration(300).setInterpolator(new AccelerateInterpolator());
             mBlockingView.setClickable(false);
             mShowLoader = false;
+            saveButton.setEnabled(true);
             supportInvalidateOptionsMenu();
         }
 
@@ -614,6 +615,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     protected void cropAndSaveImage() {
         mBlockingView.setClickable(true);
         mShowLoader = true;
+        saveButton.setEnabled(false);
         supportInvalidateOptionsMenu();
 
         mGestureCropImageView.cropAndSaveImage(mCompressFormat, mCompressQuality, this);
@@ -627,6 +629,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
             setResultUri(resultUri, mGestureCropImageView.getTargetAspectRatio(), offsetX, offsetY, imageWidth, imageHeight);
         mBlockingView.setClickable(false);
         mShowLoader = false;
+        saveButton.setEnabled(true);
         supportInvalidateOptionsMenu();
         if (mTaskListener == null)
             finish();
@@ -641,6 +644,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         setResultError(t);
         mBlockingView.setClickable(false);
         mShowLoader = false;
+        saveButton.setEnabled(true);
         supportInvalidateOptionsMenu();
         if (mTaskListener == null)
             finish();
