@@ -68,7 +68,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
         public static ImageViewHolder createView(ViewGroup parent) {
             ImageView image = new ImageView(parent.getContext());
-            ViewGroup.MarginLayoutParams layoutParams = new ViewGroup.MarginLayoutParams(150, 150);
+            ViewGroup.MarginLayoutParams layoutParams = new ViewGroup.MarginLayoutParams(120, 120);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 layoutParams.setMarginEnd(15);
             }
