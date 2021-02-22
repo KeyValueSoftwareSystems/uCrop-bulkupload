@@ -581,7 +581,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         if (mBlockingView == null) {
             mBlockingView = new View(this);
             RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            lp.addRule(RelativeLayout.BELOW, R.id.toolbar);
+            //lp.addRule(RelativeLayout.BELOW, R.id.toolbar);
             mBlockingView.setLayoutParams(lp);
             mBlockingView.setClickable(true);
         }
