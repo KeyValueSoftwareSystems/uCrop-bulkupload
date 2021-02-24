@@ -38,19 +38,22 @@
             app:tabSelectedTextColor="#374DBA">
 
             <com.google.android.material.tabs.TabItem
+                android:id="@+id/tab_crop"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Crop" />
+                android:text="@string/ucrop_crop" />
 
             <com.google.android.material.tabs.TabItem
+                android:id="@+id/tab_rotate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rotate" />
+                android:text="@string/ucrop_rotate" />
 
             <com.google.android.material.tabs.TabItem
+                android:id="@+id/tab_scale"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Scale" />
+                android:text="@string/ucrop_scale" />
 
         </com.google.android.material.tabs.TabLayout>
     </LinearLayout>

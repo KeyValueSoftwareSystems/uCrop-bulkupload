@@ -4,17 +4,12 @@ import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.Animatable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -28,26 +23,21 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.transition.AutoTransition;
 import androidx.transition.Transition;
-import androidx.transition.TransitionManager;
 
 import com.google.android.material.tabs.TabLayout;
 import com.yalantis.ucrop.callback.BitmapCropCallback;
 import com.yalantis.ucrop.model.AspectRatio;
 import com.yalantis.ucrop.model.ImageTask;
-import com.yalantis.ucrop.util.SelectedStateListDrawable;
 import com.yalantis.ucrop.view.CropImageView;
 import com.yalantis.ucrop.view.GestureCropImageView;
 import com.yalantis.ucrop.view.ImageList.ImageAdapter;
@@ -232,8 +222,8 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
         if (aspectRatioX > 0 && aspectRatioY > 0) {
             if (tabLayout.getTabCount() > 2) {
-               tabLayout.removeTabAt(0);
-          }
+                tabLayout.removeTabAt(0);
+            }
             mGestureCropImageView.setTargetAspectRatio(aspectRatioX / aspectRatioY);
         } else if (aspectRatioList != null && aspectRationSelectedByDefault < aspectRatioList.size()) {
             mGestureCropImageView.setTargetAspectRatio(aspectRatioList.get(aspectRationSelectedByDefault).getAspectRatioX() /
@@ -309,13 +299,11 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     private TransformImageView.TransformImageListener mImageListener = new TransformImageView.TransformImageListener() {
         @Override
         public void onRotate(float currentAngle) {
-
             setAngleText(currentAngle);
         }
 
         @Override
         public void onScale(float currentScale) {
-
             setScaleText(currentScale);
         }
 
@@ -335,7 +323,6 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         }
 
     };
-
 
 
     /**
@@ -442,7 +429,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
                 rotateByAngle(90);
             }
         });
-       setAngleTextColor(mActiveControlsWidgetColor);
+        setAngleTextColor(mActiveControlsWidgetColor);
     }
 
     private void setupScaleWidget() {
@@ -513,7 +500,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     private final TabLayout.OnTabSelectedListener tabSelectedListener = new TabLayout.OnTabSelectedListener() {
         @Override
         public void onTabSelected(TabLayout.Tab tab) {
-            setWidgetState(tab.getPosition());
+            setWidgetState(tab.getText());
         }
 
         @Override
@@ -543,24 +530,20 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
     private void setInitialState() {
         if (mShowBottomControls) {
-            if (tabLayout.getSelectedTabPosition() == 0) {
-                setWidgetState(0);
-            } else {
-                setWidgetState(2);
-            }
+            setWidgetState(tabLayout.getTabAt(tabLayout.getSelectedTabPosition()).getText());
         } else {
             setAllowedGestures(0);
         }
     }
 
-    private void setWidgetState(int stateViewId) {
-        mLayoutAspectRatio.setVisibility(stateViewId == 0 ? View.VISIBLE : View.GONE);
-        mLayoutRotate.setVisibility(stateViewId == 1 ? View.VISIBLE : View.GONE);
-        mLayoutScale.setVisibility(stateViewId == 2 ? View.VISIBLE : View.GONE);
+    private void setWidgetState(CharSequence tabText) {
+        mLayoutAspectRatio.setVisibility(tabText == getString(R.string.ucrop_crop) ? View.VISIBLE : View.GONE);
+        mLayoutRotate.setVisibility(tabText == getString(R.string.ucrop_rotate) ? View.VISIBLE : View.GONE);
+        mLayoutScale.setVisibility(tabText == getString(R.string.ucrop_scale) ? View.VISIBLE : View.GONE);
 
-        if (stateViewId == 2) {
+        if (tabText == getString(R.string.ucrop_scale)) {
             setAllowedGestures(0);
-        } else if (stateViewId == 1) {
+        } else if (tabText == getString(R.string.ucrop_rotate)) {
             setAllowedGestures(1);
         } else {
             setAllowedGestures(2);
