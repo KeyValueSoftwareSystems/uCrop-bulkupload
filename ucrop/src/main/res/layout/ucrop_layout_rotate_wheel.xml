@@ -26,12 +26,15 @@
     <FrameLayout
         android:id="@+id/wrapper_reset_rotate"
         style="@style/ucrop_WrapperRotateButton"
-        android:layout_centerVertical="true"
         android:background="?attr/selectableItemBackground">
 
-        <ImageView
-            style="@style/ucrop_ImageViewWidgetIcon"
-            app:srcCompat="@drawable/ucrop_ic_reset" />
+        <TextView
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ucrop_reset"
+            android:textColor="@color/ucrop_primary_color"
+            />
 
     </FrameLayout>
 

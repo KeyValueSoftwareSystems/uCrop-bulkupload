@@ -18,51 +18,41 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
-    <LinearLayout
-        android:id="@+id/tab_states"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/list_img"
-        android:background="@color/ucrop_color_widget_background"
-        android:baselineAligned="false"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:layout_below="@id/list_img"
+        android:background="@color/ucrop_color_white"
+        app:tabIndicatorColor="#374DBA"
+        app:tabMode="fixed"
+        app:tabSelectedTextColor="#374DBA">
 
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tab_layout"
-            android:layout_width="match_parent"
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tab_crop"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:tabMode="fixed"
-            android:background="@color/ucrop_color_white"
-            app:tabIndicatorColor="#374DBA"
-            app:tabSelectedTextColor="#374DBA">
+            android:text="@string/ucrop_crop" />
 
-            <com.google.android.material.tabs.TabItem
-                android:id="@+id/tab_crop"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/ucrop_crop" />
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tab_rotate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ucrop_rotate" />
 
-            <com.google.android.material.tabs.TabItem
-                android:id="@+id/tab_rotate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/ucrop_rotate" />
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tab_scale"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ucrop_scale" />
 
-            <com.google.android.material.tabs.TabItem
-                android:id="@+id/tab_scale"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/ucrop_scale" />
-
-        </com.google.android.material.tabs.TabLayout>
-    </LinearLayout>
+    </com.google.android.material.tabs.TabLayout>
 
     <FrameLayout
         android:id="@+id/wrapper_controls"
         android:layout_width="match_parent"
         android:layout_height="@dimen/ucrop_height_wrapper_controls"
-        android:layout_below="@id/tab_states"
+        android:layout_below="@id/tab_layout"
         android:layout_marginBottom="0dp">
 
         <ImageView
@@ -94,7 +84,7 @@
         android:layout_alignBottom="@+id/wrapper_controls"
         android:src="@drawable/ucrop_shadow_upside" />
 
- <LinearLayout
+    <LinearLayout
         android:id="@+id/buttons_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

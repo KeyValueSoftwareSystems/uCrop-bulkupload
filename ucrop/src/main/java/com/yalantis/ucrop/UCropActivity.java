@@ -3,6 +3,7 @@ package com.yalantis.ucrop;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Build;
@@ -23,7 +24,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.IdRes;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -119,6 +119,11 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        String statusBarColor = getIntent().getStringExtra(UCrop.Options.EXTRA_STATUS_BAR_COLOR);
+        if (statusBarColor != null) {
+            setStatusBarColor(Color.parseColor(statusBarColor));
+        }
         setContentView(R.layout.ucrop_activity_photobox);
 
         final Intent intent = getIntent();
@@ -135,6 +140,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     @Override
     public void onSelectionChange(ImageTask currentTask) {
         Intent bundle = new Intent();
+        bundle.putExtras(getIntent().getExtras());
         bundle.putExtra(UCrop.EXTRA_INPUT_URI, currentTask.getSource());
         bundle.putExtra(UCrop.EXTRA_OUTPUT_URI, currentTask.getDestination());
         setImageData(bundle);
