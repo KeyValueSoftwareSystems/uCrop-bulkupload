@@ -1,6 +1,7 @@
 package com.yalantis.ucrop.view.ImageList;
 
 import android.os.Build;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
@@ -16,11 +17,14 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     private final ImageTaskListOwner listOwner;
     private final List<ImageTask> mImageList;
     private int mCurrentSelectedIndex;
+    private int mLastCroppedIndex;
+    private int mClickedIndex;
 
     public ImageAdapter(List<ImageTask> itemList, @NonNull ImageTaskListOwner owner) {
         mImageList = itemList;
         listOwner = owner;
         mCurrentSelectedIndex = 0;
+        mLastCroppedIndex = -1;
         listOwner.onSelectionChange(mImageList.get(mCurrentSelectedIndex));
     }
 
@@ -31,8 +35,21 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ImageViewHolder holder, final int position) {
         holder.bind(mImageList.get(position), position == mCurrentSelectedIndex);
+        holder.mItemImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (position == mCurrentSelectedIndex) return;
+                else if (position <= mLastCroppedIndex) {
+                    listOwner.onPrevTaskSelected();
+                } else {
+                    List<ImageTask> sublist = mImageList.subList(mLastCroppedIndex + 1, position);
+                    listOwner.onFutureTaskSelected(sublist);
+                }
+                mClickedIndex = position;
+            }
+        });
     }
 
     @Override
@@ -41,15 +58,33 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     }
 
     @Override
-    public boolean onImageTaskFinish() {
+    public void onImageTaskFinish() {
+        if (mCurrentSelectedIndex > mLastCroppedIndex)
+            mLastCroppedIndex = mCurrentSelectedIndex;
+
         int prevSelection = mCurrentSelectedIndex;
-        mCurrentSelectedIndex = (mCurrentSelectedIndex + 1) % mImageList.size();
+        ImageTask task;
+
+        if (mClickedIndex < mLastCroppedIndex) { // prev clicked
+            task = new ImageTask(mImageList.get(mClickedIndex).getDestination(), mImageList.get(mClickedIndex).getDestination());
+        } else { // future clicked
+            task = mImageList.get(mClickedIndex);
+        }
+
+        mCurrentSelectedIndex = mClickedIndex;
+        mClickedIndex = -1;
+
         notifyItemChanged(prevSelection);
         notifyItemChanged(mCurrentSelectedIndex);
         if (listOwner != null) {
-            listOwner.onSelectionChange(mImageList.get(mCurrentSelectedIndex));
+            listOwner.onSelectionChange(task);
         }
-        return mCurrentSelectedIndex == 0;
+    }
+
+    @Override
+    public void onDoneClicked() {
+        List<ImageTask> pendingTaskList = mImageList.subList(mLastCroppedIndex + 1, mImageList.size());
+        listOwner.processPendingtasks(pendingTaskList);
     }
 
     public static class ImageViewHolder extends RecyclerView.ViewHolder {

@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -36,8 +37,10 @@ import androidx.transition.Transition;
 
 import com.google.android.material.tabs.TabLayout;
 import com.yalantis.ucrop.callback.BitmapCropCallback;
+import com.yalantis.ucrop.callback.CopyFilesCallback;
 import com.yalantis.ucrop.model.AspectRatio;
 import com.yalantis.ucrop.model.ImageTask;
+import com.yalantis.ucrop.task.CopyFilesTask;
 import com.yalantis.ucrop.view.CropImageView;
 import com.yalantis.ucrop.view.GestureCropImageView;
 import com.yalantis.ucrop.view.ImageList.ImageAdapter;
@@ -93,6 +96,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
     private boolean mShowBottomControls;
     private boolean mShowLoader = true;
+    private boolean mNavigateBack = false;
 
     private UCropView mUCropView;
     private GestureCropImageView mGestureCropImageView;
@@ -144,6 +148,63 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         bundle.putExtra(UCrop.EXTRA_INPUT_URI, currentTask.getSource());
         bundle.putExtra(UCrop.EXTRA_OUTPUT_URI, currentTask.getDestination());
         setImageData(bundle);
+        mNavigateBack = false;
+    }
+
+    @Override
+    public void onPrevTaskSelected() {
+        mNavigateBack = true;
+        cropAndSaveImage();
+    }
+
+    @Override
+    public void onFutureTaskSelected(List<ImageTask> copyTaskList) {
+        cropAndSaveImage();
+        if (!copyTaskList.isEmpty()) {
+            mBlockingView.setClickable(true);
+            mShowLoader = true;
+            saveButton.setEnabled(false);
+
+            new CopyFilesTask(new CopyFilesCallback() {
+                @Override
+                public void onCopyTaskFailed(Throwable exception) {
+                    mBlockingView.setClickable(false);
+                    mShowLoader = false;
+                    saveButton.setEnabled(true);
+                    mTaskListener.onImageTaskFinish();
+                }
+
+                @Override
+                public void onCopyTaskComplete() {
+                    mBlockingView.setClickable(false);
+                    mShowLoader = false;
+                    saveButton.setEnabled(true);
+                    mTaskListener.onImageTaskFinish();
+                }
+            }, new ArrayList(copyTaskList)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }
+    }
+
+    @Override
+    public void processPendingtasks(List<ImageTask> pendingTasks) {
+        if (!pendingTasks.isEmpty()) {
+            new CopyFilesTask(new CopyFilesCallback() {
+                @Override
+                public void onCopyTaskFailed(Throwable exception) {
+                    setResultError(exception);
+                    finish();
+                }
+
+                @Override
+                public void onCopyTaskComplete() {
+                    setResultUriArray(mResultArray);
+                    finish();
+                }
+            }, new ArrayList<ImageTask>(pendingTasks)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } else {
+            setResultUriArray(mResultArray);
+            finish();
+        }
     }
 
     @Override
@@ -531,6 +592,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         @Override
         public void onClick(View view) {
             cropAndSaveImage();
+            mTaskListener.onDoneClicked();
         }
     };
 
@@ -582,7 +644,6 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         mBlockingView.setClickable(true);
         mShowLoader = true;
         saveButton.setEnabled(false);
-        supportInvalidateOptionsMenu();
 
         mGestureCropImageView.cropAndSaveImage(mCompressFormat, mCompressQuality, this);
     }
@@ -596,13 +657,10 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         mBlockingView.setClickable(false);
         mShowLoader = false;
         saveButton.setEnabled(true);
-        supportInvalidateOptionsMenu();
         if (mTaskListener == null)
             finish();
-        else if (mTaskListener.onImageTaskFinish()) {
-            setResultUriArray(mResultArray);
-            finish();
-        }
+        else
+            handleCropCompleted();
     }
 
     @Override
@@ -611,13 +669,10 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         mBlockingView.setClickable(false);
         mShowLoader = false;
         saveButton.setEnabled(true);
-        supportInvalidateOptionsMenu();
         if (mTaskListener == null)
             finish();
-        else if (mTaskListener.onImageTaskFinish()) {
-            setResultUriArray(mResultArray);
-            finish();
-        }
+        else
+            handleCropCompleted();
     }
 
     protected void setResultUri(Uri uri, float resultAspectRatio, int offsetX, int offsetY, int imageWidth, int imageHeight) {
@@ -658,6 +713,12 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         imgList.setLayoutManager(new LinearLayoutManager(imgList.getContext(), LinearLayoutManager.HORIZONTAL, false));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             imgList.setForegroundGravity(Gravity.CENTER_HORIZONTAL);
+        }
+    }
+
+    private void handleCropCompleted() {
+        if (mNavigateBack) {
+            mTaskListener.onImageTaskFinish();
         }
     }
 }
