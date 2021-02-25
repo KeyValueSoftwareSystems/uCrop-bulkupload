@@ -398,14 +398,16 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         return uCrop.withOptions(options);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     private void handleCropResult(@NonNull Intent result) {
         final Uri resultUri = UCrop.getOutput(result);
         if (resultUri != null) {
             Log.i("result", resultUri.toString());
-//            ResultActivity.startWithUri(SampleActivity.this, resultUri);
+            ResultActivity.startWithUri(SampleActivity.this, resultUri);
         } else {
             final ArrayList<Uri> resultArray = UCrop.getOutputArray(result);
             Log.i("result URIs", String.valueOf(resultArray.size()));
+            ResultActivity.startWithUris(SampleActivity.this, resultArray);
         }
     }
 

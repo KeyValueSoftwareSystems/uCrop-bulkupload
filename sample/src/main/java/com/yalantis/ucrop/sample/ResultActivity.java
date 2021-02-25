@@ -5,6 +5,7 @@ import android.annotation.TargetApi;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -26,15 +27,19 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import static android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION;
 import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
@@ -54,32 +59,45 @@ public class ResultActivity extends BaseActivity {
         context.startActivity(intent);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    public static void startWithUris(@NonNull Context context, @NonNull ArrayList<Uri> uris) {
+        Intent intent = new Intent(context, ResultActivity.class);
+        ClipData clipData = ClipData.newUri(context.getContentResolver(), "", uris.get(0));
+        for (int i=1; i<uris.size(); i++)
+            clipData.addItem(new ClipData.Item(uris.get(i)));
+        intent.setClipData(clipData);
+        context.startActivity(intent);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_result);
         Uri uri = getIntent().getData();
+        ArrayList<Uri> imgList = new ArrayList<Uri>();
         if (uri != null) {
-            try {
-                UCropView uCropView = findViewById(R.id.ucrop);
-                uCropView.getCropImageView().setImageUri(uri, null);
-                uCropView.getOverlayView().setShowCropFrame(false);
-                uCropView.getOverlayView().setShowCropGrid(false);
-                uCropView.getOverlayView().setDimmedColor(Color.TRANSPARENT);
-            } catch (Exception e) {
-                Log.e(TAG, "setImageUri", e);
-                Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-            }
+            imgList.add(uri);
+        } else {
+            ClipData clipData = getIntent().getClipData();
+            for (int i=0; i<clipData.getItemCount(); i++)
+                imgList.add(clipData.getItemAt(i).getUri());
         }
-        final BitmapFactory.Options options = new BitmapFactory.Options();
+
+        ImageAdapter adapter = new ImageAdapter(imgList);
+        RecyclerView rv = findViewById(R.id.img_list);
+        rv.setAdapter(adapter);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+
+        /*final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(new File(getIntent().getData().getPath()).getAbsolutePath(), options);
+        BitmapFactory.decodeFile(new File(getIntent().getData().getPath()).getAbsolutePath(), options);*/
 
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         final ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle(getString(R.string.format_crop_result_d_d, options.outWidth, options.outHeight));
+//            actionBar.setTitle(getString(R.string.format_crop_result_d_d, options.outWidth, options.outHeight));
         }
     }
 
