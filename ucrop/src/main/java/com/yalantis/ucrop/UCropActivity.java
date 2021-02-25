@@ -55,6 +55,7 @@ import com.yalantis.ucrop.view.widget.HorizontalProgressWheelView;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -97,6 +98,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     private boolean mShowBottomControls;
     private boolean mShowLoader = true;
     private boolean mNavigateBack = false;
+    private boolean mDoneClicked = false;
 
     private UCropView mUCropView;
     private GestureCropImageView mGestureCropImageView;
@@ -108,7 +110,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     private TextView mTextViewRotateAngle, mTextViewScalePercent;
     private View mBlockingView;
     private ImageTaskListener mTaskListener;
-    private ArrayList<Uri> mResultArray = new ArrayList<Uri>();
+    private HashSet<Uri> mResultSet = new HashSet<>();
 
     private Transition mControlsTransition;
 
@@ -160,35 +162,37 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     @Override
     public void onFutureTaskSelected(List<ImageTask> copyTaskList) {
         cropAndSaveImage();
-        if (!copyTaskList.isEmpty()) {
-            mBlockingView.setClickable(true);
-            mShowLoader = true;
-            saveButton.setEnabled(false);
 
-            new CopyFilesTask(new CopyFilesCallback() {
-                @Override
-                public void onCopyTaskFailed(Throwable exception) {
-                    mBlockingView.setClickable(false);
-                    mShowLoader = false;
-                    saveButton.setEnabled(true);
-                    mTaskListener.onImageTaskFinish();
-                }
+        if (copyTaskList.isEmpty()) return;
 
-                @Override
-                public void onCopyTaskComplete() {
-                    mBlockingView.setClickable(false);
-                    mShowLoader = false;
-                    saveButton.setEnabled(true);
-                    mTaskListener.onImageTaskFinish();
-                }
-            }, new ArrayList(copyTaskList)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        mBlockingView.setClickable(true);
+        mShowLoader = true;
+        saveButton.setEnabled(false);
+
+        new CopyFilesTask(this, new CopyFilesCallback() {
+            @Override
+            public void onCopyTaskFailed(Throwable exception) {
+                mBlockingView.setClickable(false);
+                mShowLoader = false;
+                saveButton.setEnabled(true);
+                setResultError(exception);
+                finish();
+            }
+
+            @Override
+            public void onCopyTaskComplete() {
+                mBlockingView.setClickable(false);
+                mShowLoader = false;
+                saveButton.setEnabled(true);
+                mTaskListener.onImageTaskFinish();
+            }
+        }, new ArrayList<ImageTask>(copyTaskList)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     @Override
-    public void processPendingtasks(List<ImageTask> pendingTasks) {
+    public void processPendingTasks(final List<ImageTask> pendingTasks) {
         if (!pendingTasks.isEmpty()) {
-            new CopyFilesTask(new CopyFilesCallback() {
+            new CopyFilesTask(this, new CopyFilesCallback() {
                 @Override
                 public void onCopyTaskFailed(Throwable exception) {
                     setResultError(exception);
@@ -197,12 +201,17 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
                 @Override
                 public void onCopyTaskComplete() {
-                    setResultUriArray(mResultArray);
+                    ArrayList<Uri> desArray = new ArrayList<>();
+                    for (ImageTask task : pendingTasks) {
+                        desArray.add(task.getDestination());
+                    }
+                    mResultSet.addAll(desArray);
+                    setResultUriSet(mResultSet);
                     finish();
                 }
             }, new ArrayList<ImageTask>(pendingTasks)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } else {
-            setResultUriArray(mResultArray);
+            setResultUriSet(mResultSet);
             finish();
         }
     }
@@ -380,7 +389,6 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
             mBlockingView.setClickable(false);
             mShowLoader = false;
             saveButton.setEnabled(true);
-            supportInvalidateOptionsMenu();
         }
 
         @Override
@@ -390,7 +398,6 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         }
 
     };
-
 
     /**
      * Sets status-bar color for L devices.
@@ -563,7 +570,6 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         mGestureCropImageView.setImageToWrapCropBounds();
     }
 
-
     private final TabLayout.OnTabSelectedListener tabSelectedListener = new TabLayout.OnTabSelectedListener() {
         @Override
         public void onTabSelected(TabLayout.Tab tab) {
@@ -572,12 +578,10 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
         @Override
         public void onTabUnselected(TabLayout.Tab tab) {
-
         }
 
         @Override
         public void onTabReselected(TabLayout.Tab tab) {
-
         }
     };
 
@@ -592,7 +596,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         @Override
         public void onClick(View view) {
             cropAndSaveImage();
-            mTaskListener.onDoneClicked();
+            mDoneClicked = true;
         }
     };
 
@@ -651,7 +655,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     @Override
     public void onBitmapCropped(@NonNull Uri resultUri, int offsetX, int offsetY, int imageWidth, int imageHeight) {
         if (getIntent().hasExtra(UCrop.EXTRA_LIST_INPUT_URI))
-            mResultArray.add(resultUri);
+            mResultSet.add(resultUri);
         else
             setResultUri(resultUri, mGestureCropImageView.getTargetAspectRatio(), offsetX, offsetY, imageWidth, imageHeight);
         mBlockingView.setClickable(false);
@@ -686,9 +690,9 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         );
     }
 
-    protected void setResultUriArray(ArrayList<Uri> uris) {
+    protected void setResultUriSet(HashSet<Uri> uris) {
         setResult(RESULT_OK, new Intent()
-                .putParcelableArrayListExtra(UCrop.EXTRA_LIST_OUTPUT_URI, uris)
+                .putParcelableArrayListExtra(UCrop.EXTRA_LIST_OUTPUT_URI, new ArrayList<Uri>(uris))
         );
     }
 
@@ -717,8 +721,11 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
     }
 
     private void handleCropCompleted() {
-        if (mNavigateBack) {
+        if (mNavigateBack || mDoneClicked) {
             mTaskListener.onImageTaskFinish();
+        }
+        if (mDoneClicked) {
+            mTaskListener.onDoneClicked();
         }
     }
 }

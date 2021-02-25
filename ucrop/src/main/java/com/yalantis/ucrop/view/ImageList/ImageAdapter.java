@@ -11,10 +11,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.yalantis.ucrop.R;
 import com.yalantis.ucrop.model.ImageTask;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> implements ImageTaskListener {
-    private final ImageTaskListOwner listOwner;
+    private final ImageTaskListOwner mListOwner;
     private final List<ImageTask> mImageList;
     private int mCurrentSelectedIndex;
     private int mLastCroppedIndex;
@@ -22,10 +23,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
     public ImageAdapter(List<ImageTask> itemList, @NonNull ImageTaskListOwner owner) {
         mImageList = itemList;
-        listOwner = owner;
+        mListOwner = owner;
         mCurrentSelectedIndex = 0;
         mLastCroppedIndex = -1;
-        listOwner.onSelectionChange(mImageList.get(mCurrentSelectedIndex));
+        mListOwner.onSelectionChange(mImageList.get(mCurrentSelectedIndex));
     }
 
     @NonNull
@@ -35,17 +36,17 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ImageViewHolder holder, final int position) {
+    public void onBindViewHolder(@NonNull final ImageViewHolder holder, final int position) {
         holder.bind(mImageList.get(position), position == mCurrentSelectedIndex);
         holder.mItemImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (position == mCurrentSelectedIndex) return;
                 else if (position <= mLastCroppedIndex) {
-                    listOwner.onPrevTaskSelected();
+                    mListOwner.onPrevTaskSelected();
                 } else {
                     List<ImageTask> sublist = mImageList.subList(mLastCroppedIndex + 1, position);
-                    listOwner.onFutureTaskSelected(sublist);
+                    mListOwner.onFutureTaskSelected(sublist);
                 }
                 mClickedIndex = position;
             }
@@ -59,13 +60,18 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
     @Override
     public void onImageTaskFinish() {
-        if (mCurrentSelectedIndex > mLastCroppedIndex)
-            mLastCroppedIndex = mCurrentSelectedIndex;
+        if (mClickedIndex <= mLastCroppedIndex)
+            mLastCroppedIndex = Math.max(mLastCroppedIndex, mCurrentSelectedIndex);
+        else
+            mLastCroppedIndex = mClickedIndex - 1;
 
         int prevSelection = mCurrentSelectedIndex;
         ImageTask task;
 
-        if (mClickedIndex < mLastCroppedIndex) { // prev clicked
+        if (mClickedIndex == -1) {
+            mClickedIndex = (mCurrentSelectedIndex + 1) % mImageList.size();
+            task = mImageList.get(mClickedIndex);
+        } else if (mClickedIndex < mLastCroppedIndex) { // prev clicked
             task = new ImageTask(mImageList.get(mClickedIndex).getDestination(), mImageList.get(mClickedIndex).getDestination());
         } else { // future clicked
             task = mImageList.get(mClickedIndex);
@@ -76,15 +82,20 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
         notifyItemChanged(prevSelection);
         notifyItemChanged(mCurrentSelectedIndex);
-        if (listOwner != null) {
-            listOwner.onSelectionChange(task);
+        if (mListOwner != null) {
+            mListOwner.onSelectionChange(task);
         }
     }
 
     @Override
     public void onDoneClicked() {
-        List<ImageTask> pendingTaskList = mImageList.subList(mLastCroppedIndex + 1, mImageList.size());
-        listOwner.processPendingtasks(pendingTaskList);
+        List<ImageTask> pendingTaskList;
+        try {
+            pendingTaskList = mImageList.subList(mLastCroppedIndex + 1, mImageList.size());
+        } catch (ArrayIndexOutOfBoundsException e) {
+            pendingTaskList = new ArrayList<ImageTask>();
+        }
+        mListOwner.processPendingTasks(pendingTaskList);
     }
 
     public static class ImageViewHolder extends RecyclerView.ViewHolder {
