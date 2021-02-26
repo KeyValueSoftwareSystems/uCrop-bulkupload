@@ -531,6 +531,19 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
                         mGestureCropImageView.cancelAllAnimations();
                     }
                 });
+        findViewById(R.id.scale_minus).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                scaleByDelta(-100f);
+            }
+        });
+        findViewById(R.id.scale_add).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                scaleByDelta(100f);
+            }
+        });
+
         ((HorizontalProgressWheelView) findViewById(R.id.scale_scroll_wheel)).setMiddleLineColor(mActiveControlsWidgetColor);
 
         setScaleTextColor(mActiveControlsWidgetColor);
@@ -567,6 +580,16 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
     private void rotateByAngle(int angle) {
         mGestureCropImageView.postRotate(angle);
+        mGestureCropImageView.setImageToWrapCropBounds();
+    }
+
+    private void scaleByDelta(float delta) {
+        float deltaScale = mGestureCropImageView.getCurrentScale()
+                + delta * ((mGestureCropImageView.getMaxScale() - mGestureCropImageView.getMinScale()) / SCALE_WIDGET_SENSITIVITY_COEFFICIENT);
+        if (delta > 0)
+            mGestureCropImageView.zoomInImage(deltaScale);
+        else
+            mGestureCropImageView.zoomOutImage(deltaScale);
         mGestureCropImageView.setImageToWrapCropBounds();
     }
 
