@@ -41,14 +41,14 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         holder.mItemImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                mClickedIndex = position;
                 if (position == mCurrentSelectedIndex) return;
                 else if (position <= mLastCroppedIndex) {
                     mListOwner.onPrevTaskSelected();
                 } else {
-                    List<ImageTask> sublist = mImageList.subList(mLastCroppedIndex + 1, position);
+                    List<ImageTask> sublist = mImageList.subList(mCurrentSelectedIndex + 1, position);
                     mListOwner.onFutureTaskSelected(sublist);
                 }
-                mClickedIndex = position;
             }
         });
     }
@@ -71,7 +71,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         if (mClickedIndex == -1) {
             mClickedIndex = (mCurrentSelectedIndex + 1) % mImageList.size();
             task = mImageList.get(mClickedIndex);
-        } else if (mClickedIndex < mLastCroppedIndex) { // prev clicked
+        } else if (mClickedIndex <= mLastCroppedIndex) { // prev clicked
             task = new ImageTask(mImageList.get(mClickedIndex).getDestination(), mImageList.get(mClickedIndex).getDestination());
         } else { // future clicked
             task = mImageList.get(mClickedIndex);

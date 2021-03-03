@@ -748,9 +748,8 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
         mGestureCropImageView = mUCropView.getCropImageView();
         mGestureCropImageView.setTransformImageListener(mImageListener);
 
-        if (mNavigateBack || mDoneClicked) {
-            mTaskListener.onImageTaskFinish();
-        }
+        mTaskListener.onImageTaskFinish();
+
         if (mDoneClicked) {
             mTaskListener.onDoneClicked();
         }
