@@ -184,7 +184,6 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
                 mBlockingView.setClickable(false);
                 mShowLoader = false;
                 saveButton.setEnabled(true);
-                mTaskListener.onImageTaskFinish();
             }
         }, new ArrayList<ImageTask>(copyTaskList)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
@@ -677,7 +676,7 @@ public class UCropActivity extends AppCompatActivity implements ImageTaskListOwn
 
     @Override
     public void onBitmapCropped(@NonNull Uri resultUri, int offsetX, int offsetY, int imageWidth, int imageHeight) {
-        if (getIntent().hasExtra(UCrop.EXTRA_LIST_INPUT_URI))
+        if (mTaskListener != null)
             mResultSet.add(resultUri);
         else
             setResultUri(resultUri, mGestureCropImageView.getTargetAspectRatio(), offsetX, offsetY, imageWidth, imageHeight);
